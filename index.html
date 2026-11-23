@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#E8D8BE" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Soroban Mestre: Desafio do Ábaco</title>
+
+  <!-- Manifesto PWA Dinâmico -->
+  <link id="pwa-manifest" rel="manifest" href="" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Tipografia Japonesa Editorial & Monoespaçada -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@600;700;800&family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* Tema 1 (Padrão): Hinoki & Ébano (Carpintaria Fina Japonesa) */
+      --bg-outer: #DFC8A6;
+      --bg-outer-grad: #F3E7D3;
+      --surface-panel: #F7EFE2;
+      --surface-card: #EADBC3;
+      --text-main: #2A1D12;
+      --text-muted: #6E543C;
+      --border-main: #C4A77D;
+      --accent-primary: #9A3412;
+      --accent-secondary: #15803D;
+
+      /* Estrutura do Soroban */
+      --frame-bg: #5C3A21;
+      --frame-border: #3B2312;
+      --well-bg: #F3E6D0;
+      --well-shadow: inset 0 4px 12px rgba(42, 29, 18, 0.22);
+      --rod-color: #B4946C;
+      --rod-highlight: #DEC49E;
+      --bar-bg: #3E2514;
+      --bar-border: #241409;
+      --bar-dot: #FBBF24;
+
+      /* Contas Bicônicas de Ébano com Ponteira de Latão */
+      --bead-top: #3E2E23;
+      --bead-mid: #1C130D;
+      --bead-bot: #0D0805;
+      --bead-rim: #D97706;
+      --bead-active-glow: 0 0 0 2px #D97706, 0 5px 10px rgba(0, 0, 0, 0.45);
+      --bead-idle-shadow: 0 4px 7px rgba(0, 0, 0, 0.32);
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-outer);
+      color: var(--text-main);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .font-serif-jp { font-family: 'Shippori Mincho', Georgia, serif; }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+
+    .outer-backdrop {
+      background-color: var(--bg-outer);
+      background-image: radial-gradient(circle at 50% 0%, var(--bg-outer-grad) 0%, var(--bg-outer) 92%);
+    }
+
+    .soro-panel {
+      background-color: var(--surface-panel);
+      border: 1.5px solid var(--border-main);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+    }
+
+    .soro-card {
+      background-color: var(--surface-card);
+      border: 1px solid var(--border-main);
+    }
+
+    .gold-avatar-ring {
+      border-color: #EAB308 !important;
+      box-shadow: 0 0 0 2px #854D0E, 0 0 14px rgba(234, 179, 8, 0.85);
+    }
+
+    /* Moldura do Soroban Autêntico */
+    .soroban-frame {
+      background: linear-gradient(180deg, var(--frame-bg) 0%, var(--frame-border) 100%);
+      border: 3px solid var(--frame-border);
+      border-radius: 18px;
+      padding: 10px;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+      touch-action: none;
+    }
+
+    .soroban-well {
+      position: relative;
+      background-color: var(--well-bg);
+      box-shadow: var(--well-shadow);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    /* Barra Central (Harimono) */
+    .harimono-bar {
+      position: relative;
+      height: 16px;
+      background: linear-gradient(180deg, var(--bar-bg) 0%, var(--bar-border) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.45);
+      z-index: 15;
+      cursor: ew-resize;
+      display: flex;
+      align-items: center;
+    }
+
+    @keyframes sweepGlow {
+      0% { filter: brightness(1); }
+      40% { filter: brightness(1.7); }
+      100% { filter: brightness(1); }
+    }
+    .harimono-sweeping {
+      animation: sweepGlow 0.35s ease;
+    }
+
+    /* Haste Vertical (Take-higo) */
+    .soroban-rod-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 5px;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, var(--rod-color) 0%, var(--rod-highlight) 45%, var(--rod-color) 100%);
+      border-radius: 999px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Conta Bicônica Autêntica do Soroban (Tama) */
+    .soroban-bead {
+      position: absolute;
+      left: 50%;
+      width: 86%;
+      max-width: 56px;
+      height: 28px;
+      transform: translateX(-50%);
+      z-index: 10;
+      cursor: pointer;
+      transition: top 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.14s ease, filter 0.14s ease;
+      clip-path: polygon(16% 0%, 84% 0%, 100% 50%, 84% 100%, 16% 100%, 0% 50%);
+      background: linear-gradient(
+        180deg,
+        var(--bead-top) 0%,
+        var(--bead-mid) 46%,
+        var(--bead-rim) 50%,
+        var(--bead-mid) 54%,
+        var(--bead-bot) 100%
+      );
+      box-shadow: var(--bead-idle-shadow);
+    }
+
+    .soroban-bead::after {
+      content: '';
+      position: absolute;
+      top: 22%;
+      left: 24%;
+      right: 24%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      pointer-events: none;
+    }
+
+    .soroban-bead.bead-active {
+      filter: brightness(1.12);
+    }
+
+    /* Destaque da Dica Passo a Passo */
+    @keyframes hintPulseRod {
+      0%, 100% { box-shadow: inset 0 0 0 2px #F59E0B, 0 0 14px rgba(245, 158, 11, 0.65); }
+      50% { box-shadow: inset 0 0 0 3px #FBBF24, 0 0 24px rgba(251, 191, 36, 0.95); }
+    }
+    .rod-hint-target {
+      animation: hintPulseRod 0.95s infinite ease-in-out;
+      border-radius: 8px;
+    }
+
+    /* Stickers Animados */
+    @keyframes stickerWiggle {
+      0%, 100% { transform: rotate(-4deg) scale(1); }
+      50% { transform: rotate(4deg) scale(1.06); }
+    }
+    @keyframes stickerFloatPop {
+      0% { transform: translate(-50%, -35%) scale(0.3) rotate(-14deg); opacity: 0; }
+      22% { transform: translate(-50%, -62%) scale(1.22) rotate(5deg); opacity: 1; }
+      80% { transform: translate(-50%, -94%) scale(1.04) rotate(-3deg); opacity: 1; }
+      100% { transform: translate(-50%, -125%) scale(0.85) rotate(0deg); opacity: 0; }
+    }
+    .placed-sticker {
+      position: absolute;
+      z-index: 25;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      animation: stickerWiggle 2.2s ease-in-out infinite;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+    }
+    .sticker-reaction-fx {
+      position: fixed;
+      left: 50%;
+      top: 40%;
+      z-index: 60;
+      pointer-events: none;
+      animation: stickerFloatPop 1.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+  </style>
+</head>
+<body class="outer-backdrop flex flex-col items-center">
+
+  <!-- =====================================================================
+       1. MODAL DE ONBOARDING & CREDENCIAL LOCAL (SAFESTORAGE + CÂMERA/GALERIA)
+       ===================================================================== -->
+  <div id="profile-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl p-5 sm:p-6 soro-panel max-h-[92dvh] overflow-y-auto">
+      <div class="flex items-start justify-between border-b pb-3 mb-4" style="border-color: var(--border-main);">
+        <div>
+          <span class="font-mono-num text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-white"
+            style="background: var(--accent-primary);">
+            Dojô de Cálculo Mental
+          </span>
+          <h2 class="font-serif-jp text-2xl font-extrabold mt-1">Credencial do Mestre</h2>
+        </div>
+        <button id="btn-close-profile" type="button" class="hidden text-xl font-bold px-2 py-1 rounded hover:opacity-75">✕</button>
+      </div>
+
+      <!-- Estatísticas -->
+      <div class="grid grid-cols-3 gap-2 mb-4 p-2.5 rounded-xl soro-card text-center">
+        <div>
+          <div class="text-[10px] uppercase opacity-75">Contas Certas</div>
+          <div id="stat-solved" class="font-serif-jp text-xl font-extrabold">0</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase opacity-75">Sequência</div>
+          <div id="stat-streak" class="font-serif-jp text-xl font-extrabold">0🔥</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase opacity-75">Moedas</div>
+          <div id="stat-coins" class="font-mono-num text-base font-bold mt-0.5">60 🪙</div>
+        </div>
+      </div>
+
+      <!-- Preview Avatar + Upload Galeria + Câmera -->
+      <div class="flex flex-col items-center mb-4">
+        <div id="profile-avatar-preview"
+          class="w-24 h-24 rounded-full border-4 overflow-hidden flex items-center justify-center shadow-lg"
+          style="border-color: var(--accent-primary); background: var(--surface-card);">
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2 mt-3">
+          <label class="px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer soro-card flex items-center gap-1.5 active:scale-95 transition">
+            <span>🖼️</span> Galeria
+            <input id="input-photo-upload" type="file" accept="image/*" class="hidden" />
+          </label>
+          <button id="btn-start-camera" type="button"
+            class="px-3 py-1.5 rounded-xl text-xs font-bold soro-card flex items-center gap-1.5 active:scale-95 transition">
+            <span>📷</span> Câmera
+          </button>
+        </div>
+      </div>
+
+      <!-- Câmera Ao Vivo -->
+      <div id="camera-box" class="hidden mb-4 p-3 rounded-xl bg-black border" style="border-color: var(--border-main);">
+        <video id="camera-video" autoplay playsinline class="w-full h-44 object-cover rounded-lg bg-slate-950"></video>
+        <div class="flex gap-2 mt-2.5">
+          <button id="btn-snap-photo" type="button" class="flex-1 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white">
+            📸 Capturar Foto
+          </button>
+          <button id="btn-switch-camera" type="button" class="px-3 py-2 rounded-lg font-bold text-xs bg-slate-700 text-white" title="Alternar Câmera">
+            🔄
+          </button>
+          <button id="btn-cancel-camera" type="button" class="px-3 py-2 rounded-lg font-bold text-xs bg-rose-800 text-white">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Emblemas Vetoriais SVG -->
+      <div class="mb-4">
+        <label class="block text-xs font-bold uppercase mb-1.5 opacity-80">
+          Ou escolha um selo vetorial (6 + 3 VIP):
+        </label>
+        <div id="emblems-grid" class="grid grid-cols-5 gap-2"></div>
+      </div>
+
+      <!-- Apelido -->
+      <div class="mb-5">
+        <label for="input-player-name" class="block text-xs font-bold uppercase mb-1 opacity-80">
+          Seu Apelido / Mestre
+        </label>
+        <input id="input-player-name" type="text" maxlength="20" placeholder="Ex: Mestre Eder"
+          class="w-full px-3.5 py-2.5 rounded-xl font-bold text-base soro-card focus:outline-none" />
+      </div>
+
+      <button id="btn-save-profile" type="button"
+        class="w-full py-3 rounded-xl font-serif-jp font-extrabold text-sm uppercase tracking-wider text-white shadow-lg active:scale-95 transition"
+        style="background: var(--accent-primary);">
+        Confirmar Perfil e Continuar
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       2. MODAL TUTORIAL PASSO A PASSO INTERATIVO (4 ETAPAS ILUSTRADAS)
+       ===================================================================== -->
+  <div id="tutorial-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl p-5 sm:p-6 soro-panel flex flex-col justify-between max-h-[90dvh] overflow-y-auto">
+      <div>
+        <div class="flex items-center justify-between border-b pb-3 mb-4" style="border-color: var(--border-main);">
+          <div>
+            <span id="tut-step-badge" class="font-mono-num text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded text-white"
+              style="background: var(--accent-secondary);">
+              Passo 1 de 4
+            </span>
+            <h3 id="tut-title" class="font-serif-jp text-xl sm:text-2xl font-extrabold mt-1">
+              Conta do Céu = 5
+            </h3>
+          </div>
+          <button id="btn-close-tutorial" type="button" class="text-lg font-bold px-2 py-1 rounded hover:opacity-75">✕</button>
+        </div>
+
+        <!-- Diagrama Visual -->
+        <div id="tut-diagram" class="p-4 rounded-2xl soro-card mb-4 flex flex-col items-center justify-center min-h-[156px]">
+        </div>
+
+        <p id="tut-desc" class="text-xs sm:text-sm leading-relaxed opacity-95 mb-5"></p>
+      </div>
+
+      <div>
+        <div id="tut-dots" class="flex justify-center gap-2 mb-4"></div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-tut-prev" type="button"
+            class="px-4 py-2.5 rounded-xl font-bold text-xs soro-card active:scale-95 transition">
+            ← Anterior
+          </button>
+          <button id="btn-tut-next" type="button"
+            class="flex-1 py-2.5 rounded-xl font-serif-jp font-extrabold text-xs sm:text-sm uppercase tracking-wider text-white shadow-lg active:scale-95 transition"
+            style="background: var(--accent-primary);">
+            Próximo →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       3. INTERFACE PRINCIPAL DO JOGO (PWA MOBILE-FIRST)
+       ===================================================================== -->
+  <div id="game-workspace" class="relative w-full max-w-xl flex-1 flex flex-col sm:my-3 sm:rounded-2xl overflow-hidden soro-panel">
+
+    <!-- CABEÇALHO SUPERIOR -->
+    <header class="px-3 py-2.5 border-b flex items-center justify-between gap-2"
+      style="border-color: var(--border-main); background: var(--surface-card);">
+      <button id="btn-open-profile" type="button" class="flex items-center gap-2 text-left min-w-0">
+        <div id="header-avatar" class="w-10 h-10 rounded-full border-2 overflow-hidden flex items-center justify-center shrink-0"
+          style="border-color: var(--accent-primary); background: var(--surface-panel);">
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1">
+            <span id="header-player-name" class="font-bold text-xs sm:text-sm truncate">Mestre</span>
+            <span class="text-[10px] underline opacity-70">perfil</span>
+          </div>
+          <div class="font-mono-num text-[11px] opacity-80 flex items-center gap-1.5">
+            <span>⏱️ <strong id="timer-display">00.0s</strong></span>
+            <span>•</span>
+            <span>🔥 <strong id="header-streak">0</strong></span>
+          </div>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="btn-open-store" type="button"
+          class="px-2.5 py-1.5 rounded-xl font-mono-num text-xs font-bold text-white flex items-center gap-1 shadow active:scale-95 transition"
+          style="background: var(--accent-primary);">
+          <span>🏪 Loja</span>
+          <span>•</span>
+          <span>🪙 <span id="header-coins">60</span></span>
+        </button>
+
+        <button id="btn-cycle-theme" type="button" title="Alternar Tema Visual"
+          class="p-1.5 rounded-xl text-sm soro-panel active:scale-95 transition">
+          🎨
+        </button>
+
+        <button id="btn-open-settings" type="button" title="Ajustes & Tutorial"
+          class="p-1.5 rounded-xl text-sm soro-panel active:scale-95 transition">
+          ⚙️
+        </button>
+      </div>
+    </header>
+
+    <!-- BARRA DE NÍVEIS, DESAFIO DIÁRIO & TEMA -->
+    <section class="px-3 py-2 border-b flex flex-wrap items-center justify-between gap-1.5 text-xs"
+      style="border-color: var(--border-main);">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <select id="difficulty-select" aria-label="Nível"
+          class="px-2.5 py-1.5 rounded-xl font-bold soro-card cursor-pointer">
+          <option value="easy">Fácil (3 Hastes)</option>
+          <option value="medium" selected>Médio (5 Hastes)</option>
+          <option value="hard">Difícil (7 Hastes • Flash)</option>
+        </select>
+
+        <button id="btn-daily-challenge" type="button"
+          class="px-2.5 py-1.5 rounded-xl font-bold text-white active:scale-95 transition"
+          style="background: var(--accent-secondary);">
+          📅 Diário (2×🪙)
+        </button>
+
+        <button id="btn-skip-round" type="button" title="Novo Desafio"
+          class="px-2.5 py-1.5 rounded-xl font-bold soro-card active:scale-95 transition">
+          🔄 Novo
+        </button>
+      </div>
+
+      <span id="active-theme-pill" class="px-2 py-1 rounded-lg text-[10px] font-bold soro-card opacity-90">
+        🪵 Hinoki
+      </span>
+    </section>
+
+    <!-- PAINEL DO DESAFIO / ALVO / FLASH ANZAN -->
+    <section class="px-3 py-2.5 border-b" style="border-color: var(--border-main); background: var(--surface-card);">
+      <div class="flex items-center justify-between gap-2 mb-1">
+        <span id="challenge-mode-label" class="font-mono-num text-[10px] font-bold uppercase tracking-wider opacity-80">
+          Cálculo Sequencial • 5 Hastes
+        </span>
+        <span id="round-reward-badge" class="font-mono-num text-[10px] font-bold px-2 py-0.5 rounded text-white"
+          style="background: var(--accent-primary);">
+          +35 🪙
+        </span>
+      </div>
+
+      <div class="flex items-center justify-between gap-2">
+        <div id="challenge-prompt-box" class="flex-1 min-w-0">
+          <div id="challenge-expression" class="font-mono-num text-xl sm:text-2xl font-extrabold tracking-tight truncate">
+            340 + 185 − 70
+          </div>
+          <div id="challenge-hint-sub" class="text-[11px] opacity-80 mt-0.5">
+            Execute a operação passo a passo no ábaco!
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btn-flash-peek" type="button"
+            class="hidden px-2.5 py-2 rounded-xl font-bold text-xs soro-panel active:scale-95 transition">
+            👁️ Espiar
+          </button>
+          <button id="btn-toggle-readout" type="button" title="Mostrar/Ocultar Visor do Ábaco"
+            class="px-2.5 py-2 rounded-xl font-mono-num text-xs font-bold soro-panel active:scale-95 transition">
+            🔢 <span id="current-abacus-readout">0</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ÁREA CENTRAL DO ÁBACO SOROBAN INTERATIVO -->
+    <main class="flex-1 flex flex-col items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
+      <div id="soroban-container" class="w-full max-w-[460px]"></div>
+
+      <div class="mt-2.5 text-[10px] opacity-80 text-center">
+        Toque/Deslize nas contas: Céu = <strong>5</strong>, Terra = <strong>1</strong> • Deslize na <strong>barra central</strong> para zerar tudo
+      </div>
+    </main>
+
+    <!-- BARRA DE AÇÃO: ZERAR (GOSAN) & CONFIRMAR RESPOSTA -->
+    <section class="px-3 py-2 border-t flex items-center justify-between gap-2 text-xs"
+      style="border-color: var(--border-main); background: var(--surface-card);">
+      <button id="btn-gosan-reset" type="button"
+        class="px-3.5 py-2.5 rounded-xl font-bold soro-panel flex items-center gap-1.5 active:scale-95 transition">
+        <span>🧹</span> Zerar Ábaco
+      </button>
+
+      <button id="btn-check-answer" type="button"
+        class="flex-1 py-2.5 px-4 rounded-xl font-serif-jp font-extrabold text-sm uppercase tracking-wider text-white shadow-lg active:scale-95 transition"
+        style="background: var(--accent-secondary);">
+        ✓ Confirmar Resposta
+      </button>
+    </section>
+
+    <!-- BARRA DE PODERES RÁPIDOS -->
+    <footer class="p-2.5 sm:p-3 border-t flex items-center justify-between gap-1.5 text-xs"
+      style="border-color: var(--border-main); background: var(--surface-panel);">
+      <button id="btn-power-hint" type="button"
+        class="flex-1 py-2 px-2 rounded-xl font-mono-num font-bold soro-card flex items-center justify-center gap-1 active:scale-95 transition">
+        <span>💡 Dica</span>
+        <span id="qty-hint" class="px-1.5 py-0.5 rounded text-white text-[10px]" style="background: var(--accent-primary);">15🪙</span>
+      </button>
+
+      <button id="btn-power-autorod" type="button"
+        class="flex-1 py-2 px-2 rounded-xl font-mono-num font-bold soro-card flex items-center justify-center gap-1 active:scale-95 transition">
+        <span>⚡ Auto-Haste</span>
+        <span id="qty-autorod" class="px-1.5 py-0.5 rounded text-white text-[10px]" style="background: var(--accent-primary);">20🪙</span>
+      </button>
+
+      <button id="btn-power-freeze" type="button"
+        class="flex-1 py-2 px-2 rounded-xl font-mono-num font-bold soro-card flex items-center justify-center gap-1 active:scale-95 transition">
+        <span>❄️ Congelar</span>
+        <span id="qty-freeze" class="px-1.5 py-0.5 rounded text-white text-[10px]" style="background: var(--accent-primary);">15🪙</span>
+      </button>
+    </footer>
+
+    <!-- Camada de Stickers Colados -->
+    <div id="placed-stickers-layer" class="pointer-events-none absolute inset-0 overflow-hidden z-20"></div>
+
+    <!-- Botão Flutuante & Gaveta de Stickers Animados -->
+    <div class="fixed bottom-20 right-3 z-30 flex flex-col items-end gap-2">
+      <div id="sticker-drawer" class="hidden p-2.5 rounded-2xl soro-panel shadow-2xl max-w-[90vw]">
+        <div class="flex items-center justify-between gap-3 mb-2 px-1">
+          <span class="text-[10px] font-bold uppercase opacity-80">
+            Toque p/ comemorar ou arraste p/ colar
+          </span>
+          <button id="btn-clear-stickers" type="button" class="text-[10px] underline opacity-80">
+            Limpar
+          </button>
+        </div>
+        <div id="sticker-palette" class="flex flex-wrap gap-1.5 justify-center"></div>
+      </div>
+
+      <button id="btn-toggle-stickers" type="button"
+        class="px-3.5 py-2 rounded-full font-bold text-xs text-white shadow-xl border border-white/30 flex items-center gap-1 active:scale-95 transition"
+        style="background: var(--accent-primary);">
+        <span>🎭</span> Stickers
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       4. MODAL DE AJUSTES (COM BOTÃO PERMANENTE PARA O TUTORIAL)
+       ===================================================================== -->
+  <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl p-5 soro-panel space-y-4">
+      <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-main);">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest opacity-75">Preferências & Guia</span>
+          <h3 class="font-serif-jp text-2xl font-extrabold">Ajustes do Dojô</h3>
+        </div>
+        <button id="btn-close-settings" type="button" class="text-lg font-bold px-2 py-1">✕</button>
+      </div>
+
+      <!-- Botão Destacado para Ver Tutorial a Qualquer Momento -->
+      <button id="btn-settings-tutorial" type="button"
+        class="w-full py-3.5 px-4 rounded-xl font-serif-jp font-extrabold text-sm text-white shadow-lg flex items-center justify-center gap-2 active:scale-95 transition"
+        style="background: var(--accent-secondary);">
+        <span>📖 Ver Tutorial de Como Jogar</span>
+      </button>
+
+      <div class="space-y-2.5 text-xs sm:text-sm">
+        <div class="p-3 rounded-xl soro-card flex items-center justify-between">
+          <div>
+            <div class="font-bold">🔊 Sons de Madeira</div>
+            <div class="text-xs opacity-75">Cliques autênticos das contas e sinos</div>
+          </div>
+          <button id="btn-settings-audio" type="button"
+            class="px-3 py-1.5 rounded-lg font-mono-num font-bold text-xs text-white"
+            style="background: var(--accent-primary);">
+            ATIVADO
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl soro-card flex items-center justify-between">
+          <div>
+            <div class="font-bold">⚡ Confirmação Automática</div>
+            <div class="text-xs opacity-75">Valida imediatamente ao montar o valor exato</div>
+          </div>
+          <button id="btn-settings-autocheck" type="button"
+            class="px-3 py-1.5 rounded-lg font-mono-num font-bold text-xs text-white"
+            style="background: var(--accent-primary);">
+            ATIVADO
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl soro-card flex items-center justify-between">
+          <div>
+            <div class="font-bold">🎨 Tema Visual Ativo</div>
+            <div id="settings-theme-name" class="text-xs opacity-75">🪵 Hinoki & Ébano</div>
+          </div>
+          <button id="btn-settings-theme" type="button"
+            class="px-3 py-1.5 rounded-lg font-bold text-xs soro-panel active:scale-95 transition">
+            Trocar Tema
+          </button>
+        </div>
+
+        <div class="p-3 rounded-xl soro-card flex items-center justify-between">
+          <div>
+            <div class="font-bold">🪪 Credencial & Foto</div>
+            <div class="text-xs opacity-75">Alterar apelido, selo SVG ou foto da câmera</div>
+          </div>
+          <button id="btn-settings-profile" type="button"
+            class="px-3 py-1.5 rounded-lg font-bold text-xs soro-panel active:scale-95 transition">
+            Editar Perfil
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       5. MODAL LOJA DO DOJÔ (CONSUMÍVEIS & TEMAS)
+       ===================================================================== -->
+  <div id="store-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl p-5 soro-panel space-y-4 max-h-[90dvh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border-main);">
+        <div>
+          <span class="text-[10px] uppercase tracking-widest opacity-75">Artesanato & Poderes</span>
+          <h3 class="font-serif-jp text-2xl font-extrabold">Loja do Soroban</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded-lg font-mono-num text-xs font-bold text-white" style="background: var(--accent-primary);">
+            🪙 <span id="store-balance">60</span>
+          </span>
+          <button id="btn-close-store" type="button" class="text-lg font-bold px-2 py-1">✕</button>
+        </div>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-bold uppercase opacity-80 mb-2">🎒 Poderes Consumíveis</h4>
+        <div id="store-consumables" class="space-y-2"></div>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-bold uppercase opacity-80 mb-2">🏯 Temas & Melhorias Permanentes</h4>
+        <div id="store-permanents" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast de Notificação -->
+  <div id="toast-box"
+    class="fixed top-16 left-1/2 -translate-x-1/2 z-50 hidden max-w-sm w-[92%] px-4 py-3 rounded-xl shadow-2xl border text-xs sm:text-sm font-semibold"
+    style="background: var(--surface-card); color: var(--text-main); border-color: var(--accent-primary);">
+  </div>
+
+  <!-- =====================================================================
+       6. MOTOR DO SOROBAN JAPONÊS, GESTOS, TUTORIAL E ECONOMIA
+       ===================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ------------------------------------------------------------------
+         A. SAFESTORAGE (LOCALSTORAGE COM FALLBACK EM MEMÓRIA)
+         ------------------------------------------------------------------ */
+      const SafeStorage = (() => {
+        const mem = {};
+        return {
+          get(k) {
+            try { return window.localStorage.getItem(k); }
+            catch (_) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; }
+          },
+          set(k, v) {
+            try { window.localStorage.setItem(k, v); }
+            catch (_) { mem[k] = String(v); }
+          }
+        };
+      })();
+
+      /* ------------------------------------------------------------------
+         B. PWA MANIFEST & SERVICE WORKER OFFLINE
+         ------------------------------------------------------------------ */
+      function setupPWA() {
+        try {
+          const manifest = {
+            name: 'Soroban Mestre: Desafio do Ábaco',
+            short_name: 'Soroban Mestre',
+            start_url: '.',
+            display: 'standalone',
+            background_color: '#F7EFE2',
+            theme_color: '#9A3412',
+            icons: [{
+              src: 'data:image/svg+xml;utf8,' + encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+                  <rect width="128" height="128" rx="28" fill="#5C3A21"/>
+                  <rect x="14" y="14" width="100" height="100" rx="16" fill="#F3E6D0"/>
+                  <line x1="42" y1="14" x2="42" y2="114" stroke="#B4946C" stroke-width="5"/>
+                  <line x1="86" y1="14" x2="86" y2="114" stroke="#B4946C" stroke-width="5"/>
+                  <rect x="14" y="44" width="100" height="10" fill="#3E2514"/>
+                  <polygon points="24,26 60,26 66,34 60,42 24,42 18,34" fill="#1C130D"/>
+                  <polygon points="68,60 104,60 110,68 104,76 68,76 62,68" fill="#9A3412"/>
+                </svg>`
+              ),
+              sizes: '128x128',
+              type: 'image/svg+xml'
+            }]
+          };
+          document.getElementById('pwa-manifest').href = URL.createObjectURL(
+            new Blob([JSON.stringify(manifest)], { type: 'application/json' })
+          );
+
+          if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+            const sw = `
+              const C = 'soroban-mestre-v1';
+              self.addEventListener('install', e => self.skipWaiting());
+              self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+              self.addEventListener('fetch', e => {
+                e.respondWith(
+                  caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+                    const copy = res.clone();
+                    caches.open(C).then(c => c.put(e.request, copy)).catch(() => {});
+                    return res;
+                  }).catch(() => r))
+                );
+              });
+            `;
+            navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw], { type: 'application/javascript' }))).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
+      /* ------------------------------------------------------------------
+         C. TEMAS, EMBLEMAS SVG, TUTORIAL (4 PASSOS), LOJA E STICKERS
+         ------------------------------------------------------------------ */
+      const KEY_PROFILE = 'soroban_mestre_profile_v1';
+      const KEY_ECONOMY = 'soroban_mestre_economy_v1';
+
+      const EMBLEMS = [
+        { id: 'soroban', vip: false, label: 'Conta Ábaco', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><line x1="32" y1="8" x2="32" y2="56" stroke="#B4946C" stroke-width="5"/><polygon points="14,24 50,24 56,32 50,40 14,40 8,32" fill="#2A1D12"/><line x1="12" y1="32" x2="52" y2="32" stroke="#D97706" stroke-width="2.5"/></svg>` },
+        { id: 'enso', vip: false, label: 'Círculo Zen', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><path d="M32 10 A22 22 0 1 1 13 43" fill="none" stroke="#9A3412" stroke-width="5.5" stroke-linecap="round"/></svg>` },
+        { id: 'fan', vip: false, label: 'Leque Imperial', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><path d="M10 38 A24 24 0 0 1 54 38 L32 50 Z" fill="#D97706"/><line x1="32" y1="50" x2="32" y2="16" stroke="#2A1D12" stroke-width="2.5"/></svg>` },
+        { id: 'bamboo', vip: false, label: 'Bambu', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><line x1="26" y1="10" x2="26" y2="54" stroke="#15803D" stroke-width="5"/><line x1="38" y1="14" x2="38" y2="52" stroke="#16A34A" stroke-width="4"/><line x1="21" y1="26" x2="31" y2="26" stroke="#14532D" stroke-width="3"/><line x1="33" y1="36" x2="43" y2="36" stroke="#14532D" stroke-width="3"/></svg>` },
+        { id: 'crane', vip: false, label: 'Origami Tsuru', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><polygon points="10,34 30,26 42,12 38,30 54,32 36,38 28,50 26,36" fill="#B91C1C"/></svg>` },
+        { id: 'sun', vip: false, label: 'Sol Nascente', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><circle cx="32" cy="34" r="15" fill="#DC2626"/><line x1="10" y1="48" x2="54" y2="48" stroke="#2A1D12" stroke-width="3.5"/></svg>` },
+        { id: 'vip_dragon', vip: true, label: 'Dragão Dourado (VIP)', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><circle cx="32" cy="32" r="22" fill="#450A0A" stroke="#FBBF24" stroke-width="3"/><text x="32" y="41" text-anchor="middle" font-size="26">🐉</text></svg>` },
+        { id: 'vip_kitsune', vip: true, label: 'Kitsune Zen (VIP)', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><circle cx="32" cy="32" r="22" fill="#1E293B" stroke="#F97316" stroke-width="3"/><text x="32" y="41" text-anchor="middle" font-size="26">🦊</text></svg>` },
+        { id: 'vip_crown', vip: true, label: 'Coroa Imperial (VIP)', svg: `<svg viewBox="0 0 64 64" class="w-9 h-9"><polygon points="10,46 14,20 26,32 32,14 38,32 50,20 54,46" fill="#EAB308" stroke="#713F12" stroke-width="3"/></svg>` }
+      ];
+
+      const THEMES = {
+        hinoki: {
+          short: '🪵 Hinoki',
+          name: '🪵 Hinoki & Ébano',
+          vars: {
+            '--bg-outer': '#DFC8A6',
+            '--bg-outer-grad': '#F3E7D3',
+            '--surface-panel': '#F7EFE2',
+            '--surface-card': '#EADBC3',
+            '--text-main': '#2A1D12',
+            '--text-muted': '#6E543C',
+            '--border-main': '#C4A77D',
+            '--accent-primary': '#9A3412',
+            '--accent-secondary': '#15803D',
+            '--frame-bg': '#5C3A21',
+            '--frame-border': '#3B2312',
+            '--well-bg': '#F3E6D0',
+            '--rod-color': '#B4946C',
+            '--rod-highlight': '#DEC49E',
+            '--bar-bg': '#3E2514',
+            '--bar-border': '#241409',
+            '--bar-dot': '#FBBF24',
+            '--bead-top': '#3E2E23',
+            '--bead-mid': '#1C130D',
+            '--bead-bot': '#0D0805',
+            '--bead-rim': '#D97706'
+          }
+        },
+        urushi: {
+          short: '🏮 Urushi',
+          name: '🏮 Laca Vermelha Urushi',
+          vars: {
+            '--bg-outer': '#2B0909',
+            '--bg-outer-grad': '#4C0D0D',
+            '--surface-panel': '#FFFBF2',
+            '--surface-card': '#F7EBD5',
+            '--text-main': '#3B0A0A',
+            '--text-muted': '#7F1D1D',
+            '--border-main': '#D97706',
+            '--accent-primary': '#B91C1C',
+            '--accent-secondary': '#B45309',
+            '--frame-bg': '#991B1B',
+            '--frame-border': '#450A0A',
+            '--well-bg': '#240808',
+            '--rod-color': '#B45309',
+            '--rod-highlight': '#FBBF24',
+            '--bar-bg': '#450A0A',
+            '--bar-border': '#1F0404',
+            '--bar-dot': '#FDE047',
+            '--bead-top': '#FFFBEB',
+            '--bead-mid': '#FDE68A',
+            '--bead-bot': '#D97706',
+            '--bead-rim': '#B91C1C'
+          }
+        },
+        cyber: {
+          short: '💠 Cyber',
+          name: '💠 Cyber-Ábaco Neon',
+          vars: {
+            '--bg-outer': '#050811',
+            '--bg-outer-grad': '#0D172A',
+            '--surface-panel': '#0B1220',
+            '--surface-card': '#131E35',
+            '--text-main': '#E0F2FE',
+            '--text-muted': '#7DD3FC',
+            '--border-main': '#1E3A5F',
+            '--accent-primary': '#06B6D4',
+            '--accent-secondary': '#10B981',
+            '--frame-bg': '#0F172A',
+            '--frame-border': '#0284C7',
+            '--well-bg': '#060B16',
+            '--rod-color': '#0284C7',
+            '--rod-highlight': '#38BDF8',
+            '--bar-bg': '#0E7490',
+            '--bar-border': '#083344',
+            '--bar-dot': '#F43F5E',
+            '--bead-top': '#67E8F9',
+            '--bead-mid': '#06B6D4',
+            '--bead-bot': '#0E7490',
+            '--bead-rim': '#F43F5E'
+          }
+        },
+        bamboo: {
+          short: '🎋 Jade',
+          name: '🎋 Bambu & Jade Zen',
+          vars: {
+            '--bg-outer': '#D8E5D6',
+            '--bg-outer-grad': '#EDF4EC',
+            '--surface-panel': '#F4F9F3',
+            '--surface-card': '#E1EDE0',
+            '--text-main': '#143622',
+            '--text-muted': '#3F6B50',
+            '--border-main': '#9EC2A8',
+            '--accent-primary': '#047857',
+            '--accent-secondary': '#15803D',
+            '--frame-bg': '#2D5A3C',
+            '--frame-border': '#173621',
+            '--well-bg': '#EBF3E8',
+            '--rod-color': '#84A98C',
+            '--rod-highlight': '#CAD2C5',
+            '--bar-bg': '#1B4332',
+            '--bar-border': '#081C15',
+            '--bar-dot': '#FBBF24',
+            '--bead-top': '#34D399',
+            '--bead-mid': '#059669',
+            '--bead-bot': '#064E3B',
+            '--bead-rim': '#FDE68A'
+          }
+        }
+      };
+
+      const TUTORIAL_STEPS = [
+        {
+          title: '1. Conta do Céu = 5',
+          desc: 'Acima da barra central fica a Conta do Céu. Quando você a empurra para baixo encostando na barra central, ela soma 5 unidades naquela haste!',
+          diagram: `
+            <div class="flex flex-col items-center gap-1.5 font-mono-num">
+              <div class="w-16 h-6 rounded-full bg-amber-900 border-2 border-amber-500 flex items-center justify-center text-white text-xs font-bold">5 ↓</div>
+              <div class="w-40 h-3 rounded bg-amber-950 flex items-center justify-center"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span></div>
+              <div class="text-xs font-bold mt-1">Encostou na barra = vale 5</div>
+            </div>
+          `
+        },
+        {
+          title: '2. Contas da Terra = 1 cada',
+          desc: 'Abaixo da barra central há 4 Contas da Terra. Cada conta empurrada para cima até a barra vale 1. Para formar 7, desça o Céu (5) e suba 2 contas da Terra (1+1)!',
+          diagram: `
+            <div class="flex items-center gap-4 font-mono-num text-xs font-bold">
+              <div class="p-2.5 rounded-xl bg-white/80 border text-center">
+                <div class="text-amber-800">Céu: 5</div>
+                <div class="my-1 h-1.5 bg-amber-950 rounded"></div>
+                <div class="text-emerald-800">Terra: +2</div>
+                <div class="mt-1 text-sm font-extrabold text-rose-700">= 7</div>
+              </div>
+              <div class="max-w-[170px] text-left opacity-90">
+                Toque na 2ª conta da Terra para subir 2 contas juntas de uma só vez!
+              </div>
+            </div>
+          `
+        },
+        {
+          title: '3. Gestos Rápidos & Zerar (Gosan)',
+          desc: 'Deslize o dedo para cima ou para baixo em qualquer haste para mover contas fluidamente. Para zerar todo o Soroban de uma vez, deslize o dedo horizontalmente pela barra central!',
+          diagram: `
+            <div class="flex flex-col items-center gap-2 text-xs font-bold">
+              <div class="px-4 py-2 rounded-lg bg-amber-950 text-amber-200 border border-amber-500">
+                👈 Deslize na Barra Central 👉
+              </div>
+              <div class="opacity-85 text-center">Varredura rápida (Gosan): zera todas as hastes na hora!</div>
+            </div>
+          `
+        },
+        {
+          title: '4. Níveis, Flash Anzan & Loja',
+          desc: 'No nível Fácil monte números diretos; no Médio faça somas e subtrações em cadeia; no Difícil encare o Flash Anzan de memória! Ganhe moedas (🪙) para dicas, temas e stickers.',
+          diagram: `
+            <div class="flex flex-wrap justify-center gap-2 text-xs font-bold">
+              <span class="px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-400">💡 Dica 15🪙</span>
+              <span class="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-400">⚡ Auto-Haste</span>
+              <span class="px-3 py-1.5 rounded-xl bg-rose-100 text-rose-900 border border-rose-400">🎭 Stickers</span>
+            </div>
+            <div class="text-[11px] opacity-80 mt-3 text-center">Você pode rever este guia a qualquer hora em <strong>⚙️ Ajustes</strong>!</div>
+          `
+        }
+      ];
+
+      const STORE_CONSUMABLES = [
+        { id: 'hint', title: '💡 Dica Passo a Passo', desc: 'Ilumina a próxima haste incorreta e mostra o dígito exato dela.', price: 15 },
+        { id: 'autorod', title: '⚡ Auto-Haste', desc: 'Move automaticamente as contas de uma haste incorreta para o valor certo.', price: 20 },
+        { id: 'freeze', title: '❄️ Congelar Tempo', desc: 'Pausa o cronômetro da rodada e garante bônus máximo de velocidade.', price: 15 }
+      ];
+
+      const STORE_PERMANENTS = [
+        { id: 'theme_urushi', type: 'theme', themeKey: 'urushi', title: '🏮 Tema Laca Vermelha Urushi', desc: 'Moldura imperial vermelha laqueada com contas em marfim e ouro.', price: 40 },
+        { id: 'theme_cyber', type: 'theme', themeKey: 'cyber', title: '💠 Tema Cyber-Ábaco Neon', desc: 'Visual noturno OLED com hastes de fibra óptica e contas de cristal.', price: 60 },
+        { id: 'theme_bamboo', type: 'theme', themeKey: 'bamboo', title: '🎋 Tema Bambu & Jade Zen', desc: 'Bambu natural suave com contas lapidadas em jade esmeralda.', price: 80 },
+        { id: 'vip_emblems', type: 'upgrade', title: '👑 Pacote Emblemas VIP', desc: 'Libera 3 selos exclusivos: Dragão Dourado, Kitsune Zen e Coroa.', price: 50 },
+        { id: 'gold_frame', type: 'upgrade', title: '✨ Moldura Dourada', desc: 'Halo dourado brilhante ao redor do seu avatar.', price: 80 },
+        { id: 'double_coins', type: 'upgrade', title: '🍀 Amuleto 2× Moedas', desc: 'Dobra permanentemente todas as moedas ganhas nas partidas!', price: 100 }
+      ];
+
+      const STICKERS = [
+        { id: 'exact', emoji: '🧮', label: 'Exato!', bg: '#FEF3C7', color: '#92400E', border: '#D97706' },
+        { id: 'lightning', emoji: '⚡', label: 'Relâmpago!', bg: '#E0F2FE', color: '#0369A1', border: '#0284C7' },
+        { id: 'combo', emoji: '🔥', label: 'Combo!', bg: '#FEE2E2', color: '#B91C1C', border: '#DC2626' },
+        { id: 'master', emoji: '🎋', label: 'Mestre!', bg: '#DCFCE7', color: '#15803D', border: '#16A34A' },
+        { id: 'zen', emoji: '☯️', label: 'Zen!', bg: '#F3E8FF', color: '#6B21A8', border: '#9333EA' },
+        { id: 'dragon', emoji: '🐉', label: 'Lendário!', bg: '#FEF9C3', color: '#854D0E', border: '#EAB308' }
+      ];
+
+      /* ------------------------------------------------------------------
+         D. ÁUDIO SINTETIZADO DE MADEIRA DO SOROBAN (WEB AUDIO API)
+         ------------------------------------------------------------------ */
+      class SorobanAudio {
+        constructor() {
+          this.ctx = null;
+          this.muted = false;
+        }
+        init() {
+          try {
+            if (!this.ctx) {
+              const AC = window.AudioContext || window.webkitAudioContext;
+              if (AC) this.ctx = new AC();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+          } catch (_) {}
+        }
+        play(type) {
+          if (this.muted) return;
+          this.init();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+
+          if (type === 'bead') {
+            // Clique seco de madeira da conta batendo na barra
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(520 + Math.random() * 90, now);
+            osc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
+            g.gain.setValueAtTime(0.16, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(now); osc.stop(now + 0.055);
+          } else if (type === 'sweep') {
+            // Varredura rápida das contas (Gosan)
+            [0, 0.035, 0.07, 0.105].forEach((offset, idx) => {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(420 + idx * 75, now + offset);
+              osc.frequency.exponentialRampToValueAtTime(150, now + offset + 0.04);
+              g.gain.setValueAtTime(0.12, now + offset);
+              g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.045);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now + offset); osc.stop(now + offset + 0.05);
+            });
+          } else if (type === 'coin') {
+            [987.77, 1318.51].forEach((f, i) => {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(f, now + i * 0.07);
+              g.gain.setValueAtTime(0.09, now + i * 0.07);
+              g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.22);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now + i * 0.07); osc.stop(now + i * 0.07 + 0.24);
+            });
+          } else if (type === 'win') {
+            [392.00, 493.88, 587.33, 783.99].forEach((f, i) => {
+              const osc = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(f, now + i * 0.075);
+              g.gain.setValueAtTime(0.11, now + i * 0.075);
+              g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.075 + 0.35);
+              osc.connect(g); g.connect(this.ctx.destination);
+              osc.start(now + i * 0.075); osc.stop(now + i * 0.075 + 0.38);
+            });
+          } else if (type === 'err') {
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.16);
+            g.gain.setValueAtTime(0.08, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(now); osc.stop(now + 0.19);
+          }
+        }
+      }
+      const audio = new SorobanAudio();
+
+      /* ------------------------------------------------------------------
+         E. ESTADO GLOBAL DO SOROBAN
+         ------------------------------------------------------------------ */
+      const state = {
+        profile: null,
+        economy: {
+          coins: 60,
+          streak: 0,
+          solvedCount: 0,
+          unlocked: ['theme_hinoki'],
+          activeTheme: 'hinoki',
+          inventory: { hint: 1, autorod: 0, freeze: 0 }
+        },
+        difficulty: 'medium', // 'easy' (3) | 'medium' (5) | 'hard' (7)
+        isDaily: false,
+        dailyIndex: 0,
+        rodCount: 5,
+        rods: [], // Array da esquerda (mais significativo) p/ direita (unidades): { heaven: 0|1, earth: 0..4 }
+        challenge: null, // { targetValue, expression, subText, rewardCoins, isFlash }
+        flashHidden: false,
+        flashTimerId: null,
+        showReadout: true,
+        autoCheck: true,
+        hintRodIndex: -1,
+        timeFrozen: false,
+        elapsedTenths: 0,
+        timerId: null,
+        roundSolved: false,
+        tutorialStep: 0
+      };
+
+      /* ------------------------------------------------------------------
+         F. GERADOR DE DESAFIOS (FÁCIL, MÉDIO SEQUENCIAL, DIFÍCIL FLASH ANZAN)
+         ------------------------------------------------------------------ */
+      function createRng(seedStr) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seedStr.length; i++) {
+          h ^= seedStr.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return function () {
+          h += h << 13; h ^= h >>> 7; h += h << 3; h ^= h >>> 17; h += h << 5;
+          return ((h >>> 0) / 4294967296);
+        };
+      }
+
+      function formatInt(n) {
+        return n.toLocaleString('pt-BR');
+      }
+
+      function generateChallenge() {
+        const diff = state.difficulty;
+        const isDaily = state.isDaily;
+        state.rodCount = isDaily ? 5 : (diff === 'easy' ? 3 : diff === 'medium' ? 5 : 7);
+        state.rods = Array.from({ length: state.rodCount }, () => ({ heaven: 0, earth: 0 }));
+        state.hintRodIndex = -1;
+        state.timeFrozen = false;
+        state.roundSolved = false;
+        state.flashHidden = false;
+        if (state.flashTimerId) clearTimeout(state.flashTimerId);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const seed = isDaily
+          ? `SOROBAN_DAILY_${today}_${state.dailyIndex}`
+          : `SOROBAN_${diff}_${Date.now()}_${Math.random()}`;
+        const rng = createRng(seed);
+        const randInt = (min, max) => Math.floor(rng() * (max - min + 1)) + min;
+
+        let targetValue = 0;
+        let expression = '';
+        let subText = '';
+        let isFlash = false;
+        let baseReward = 20;
+
+        if (isDaily) {
+          const a = randInt(120, 4800);
+          const b = randInt(85, 2500);
+          const c = randInt(40, Math.min(900, a + b - 50));
+          targetValue = a + b - c;
+          expression = `${formatInt(a)} + ${formatInt(b)} − ${formatInt(c)}`;
+          subText = `Desafio Diário #${state.dailyIndex + 1} • Recompensa em dobro!`;
+          baseReward = 60;
+        } else if (diff === 'easy') {
+          if (rng() < 0.5) {
+            targetValue = randInt(12, 987);
+            expression = `Monte: ${formatInt(targetValue)}`;
+            subText = 'Nível Fácil (3 Hastes) • Empurre as contas até a barra central';
+          } else {
+            const a = randInt(15, 450);
+            const b = randInt(12, 480);
+            targetValue = a + b;
+            expression = `${formatInt(a)} + ${formatInt(b)}`;
+            subText = 'Nível Fácil (3 Hastes) • Some os dois valores no ábaco';
+          }
+          baseReward = 20;
+        } else if (diff === 'medium') {
+          const a = randInt(250, 18500);
+          const b = randInt(120, 9500);
+          const c = randInt(80, Math.min(4500, a + b - 100));
+          targetValue = a + b - c;
+          expression = `${formatInt(a)} + ${formatInt(b)} − ${formatInt(c)}`;
+          subText = 'Nível Médio (5 Hastes) • Cálculo sequencial em 3 etapas';
+          baseReward = 35;
+        } else {
+          // Difícil: 7 hastes com Flash Anzan ou cadeia ampla
+          isFlash = rng() < 0.65;
+          if (isFlash) {
+            targetValue = randInt(14500, 8950000);
+            expression = formatInt(targetValue);
+            subText = '⚡ FLASH ANZAN! Memorize o número antes que desapareça!';
+          } else {
+            const a = randInt(12000, 3500000);
+            const b = randInt(8500, 2400000);
+            const c = randInt(3200, 950000);
+            targetValue = a + b - c;
+            expression = `${formatInt(a)} + ${formatInt(b)} − ${formatInt(c)}`;
+            subText = 'Nível Difícil (7 Hastes) • Precisão até a casa dos milhões';
+          }
+          baseReward = 55;
+        }
+
+        const mult = state.economy.unlocked.includes('double_coins') ? 2 : 1;
+        state.challenge = {
+          targetValue,
+          expression,
+          subText,
+          rewardCoins: baseReward * mult,
+          isFlash
+        };
+
+        renderChallengeHeader();
+        renderSoroban();
+        updateAbacusValue(false);
+
+        if (isFlash) {
+          state.flashTimerId = setTimeout(() => {
+            if (!state.roundSolved && state.challenge && state.challenge.isFlash) {
+              state.flashHidden = true;
+              renderChallengeHeader();
+            }
+          }, 2600);
+        }
+
+        // Cronômetro em décimos de segundo
+        if (state.timerId) clearInterval(state.timerId);
+        state.elapsedTenths = 0;
+        document.getElementById('timer-display').textContent = '00.0s';
+        state.timerId = setInterval(() => {
+          if (state.roundSolved || state.timeFrozen) return;
+          state.elapsedTenths++;
+          document.getElementById('timer-display').textContent = `${(state.elapsedTenths / 10).toFixed(1)}s`;
+        }, 100);
+      }
+
+      function renderChallengeHeader() {
+        const ch = state.challenge;
+        if (!ch) return;
+
+        document.getElementById('challenge-mode-label').textContent = state.isDaily
+          ? `📅 Desafio Diário • 5 Hastes`
+          : ch.isFlash
+            ? `⚡ Flash Anzan • 7 Hastes`
+            : `${state.difficulty === 'easy' ? 'Fácil • 3 Hastes' : state.difficulty === 'medium' ? 'Médio • 5 Hastes' : 'Difícil • 7 Hastes'}`;
+
+        document.getElementById('round-reward-badge').textContent = `+${ch.rewardCoins} 🪙`;
+
+        const exprEl = document.getElementById('challenge-expression');
+        const peekBtn = document.getElementById('btn-flash-peek');
+
+        if (ch.isFlash && state.flashHidden) {
+          exprEl.textContent = '• • • • • • •';
+          document.getElementById('challenge-hint-sub').textContent = 'Monte o número memorizado no Soroban!';
+          peekBtn.classList.remove('hidden');
+        } else {
+          exprEl.textContent = ch.expression;
+          document.getElementById('challenge-hint-sub').textContent = ch.subText;
+          peekBtn.classList.add('hidden');
+        }
+      }
+
+      /* ------------------------------------------------------------------
+         G. CÁLCULO DO VALOR DO ÁBACO E RENDERIZAÇÃO FÍSICA DAS HASTES
+         ------------------------------------------------------------------ */
+      function getAbacusValue() {
+        let total = 0;
+        const N = state.rodCount;
+        for (let i = 0; i < N; i++) {
+          const rod = state.rods[i];
+          const digit = rod.heaven * 5 + rod.earth;
+          const power = Math.pow(10, N - 1 - i);
+          total += digit * power;
+        }
+        return total;
+      }
+
+      function updateAbacusValue(checkAuto = true) {
+        const val = getAbacusValue();
+        const readout = document.getElementById('current-abacus-readout');
+        readout.textContent = state.showReadout ? formatInt(val) : '••••';
+
+        if (checkAuto && state.autoCheck && !state.roundSolved && state.challenge) {
+          if (val === state.challenge.targetValue) {
+            handleRoundSuccess();
+          }
+        }
+      }
+
+      function renderSoroban() {
+        const container = document.getElementById('soroban-container');
+        const N = state.rodCount;
+
+        // Dimensões físicas precisas das seções Céu e Terra
+        const heavenHeight = 68; // Conta = 28px (topo idle: 6px, ativo encostado na barra: 38px)
+        const earthHeight = 152; // 4 contas de 28px + 2px folga = 120px ocupados; 32px de curso!
+
+        let rodsTopHtml = '';
+        let barDotsHtml = '';
+        let rodsBotHtml = '';
+
+        for (let i = 0; i < N; i++) {
+          const rod = state.rods[i];
+          const placeFromRight = N - 1 - i; // 0 = unidades, 3 = milhares, 6 = milhões
+          const isUnitDot = placeFromRight % 3 === 0;
+          const isHinted = state.hintRodIndex === i;
+
+          // Seção Superior (Céu = 5)
+          const heavenTop = rod.heaven === 1 ? 37 : 6;
+          rodsTopHtml += `
+            <div class="soroban-rod-col relative h-full flex-1 ${isHinted ? 'rod-hint-target' : ''}" data-rod="${i}" data-zone="heaven">
+              <div class="soroban-rod-line"></div>
+              <div class="soroban-bead ${rod.heaven === 1 ? 'bead-active' : ''}"
+                style="top: ${heavenTop}px;"
+                data-rod="${i}" data-part="heaven"></div>
+            </div>
+          `;
+
+          // Ponto de Referência (Tei-i-ten) na Barra Central
+          barDotsHtml += `
+            <div class="flex-1 flex items-center justify-center pointer-events-none">
+              ${isUnitDot ? `<span class="w-2 h-2 rounded-full shadow" style="background: var(--bar-dot);"></span>` : ''}
+            </div>
+          `;
+
+          // Seção Inferior (Terra = 4 contas de valor 1)
+          let earthBeads = '';
+          for (let b = 0; b < 4; b++) {
+            const isUp = b < rod.earth;
+            const topPos = isUp ? (4 + b * 29) : (32 + b * 29);
+            earthBeads += `
+              <div class="soroban-bead ${isUp ? 'bead-active' : ''}"
+                style="top: ${topPos}px;"
+                data-rod="${i}" data-part="earth" data-bead="${b}"></div>
+            `;
+          }
+
+          rodsBotHtml += `
+            <div class="soroban-rod-col relative h-full flex-1 ${isHinted ? 'rod-hint-target' : ''}" data-rod="${i}" data-zone="earth">
+              <div class="soroban-rod-line"></div>
+              ${earthBeads}
+            </div>
+          `;
+        }
+
+        container.innerHTML = `
+          <div class="soroban-frame">
+            <div class="soroban-well">
+              <!-- Seção Superior (Céu) -->
+              <div class="flex px-1" style="height: ${heavenHeight}px;">
+                ${rodsTopHtml}
+              </div>
+
+              <!-- Barra Central (Harimono) - Deslize Horizontal Zera Tudo -->
+              <div id="harimono-bar" class="harimono-bar px-1" title="Deslize horizontalmente para zerar todo o Soroban">
+                ${barDotsHtml}
+              </div>
+
+              <!-- Seção Inferior (Terra) -->
+              <div class="flex px-1" style="height: ${earthHeight}px;">
+                ${rodsBotHtml}
+              </div>
+            </div>
+          </div>
+        `;
+
+        attachSorobanGestures();
+      }
+
+      /* ------------------------------------------------------------------
+         H. GESTOS NATIVOS NAS CONTAS E BARRA CENTRAL (SWIPE & DOUBLE TAP)
+         ------------------------------------------------------------------ */
+      function setRodHeaven(rodIdx, val) {
+        if (state.rods[rodIdx].heaven === val) return;
+        state.rods[rodIdx].heaven = val;
+        if (state.hintRodIndex === rodIdx) state.hintRodIndex = -1;
+        audio.play('bead');
+        renderSoroban();
+        updateAbacusValue(true);
+      }
+
+      function setRodEarth(rodIdx, count) {
+        const clamped = Math.max(0, Math.min(4, count));
+        if (state.rods[rodIdx].earth === clamped) return;
+        state.rods[rodIdx].earth = clamped;
+        if (state.hintRodIndex === rodIdx) state.hintRodIndex = -1;
+        audio.play('bead');
+        renderSoroban();
+        updateAbacusValue(true);
+      }
+
+      function resetAllRods(withSound = true) {
+        state.rods.forEach(r => { r.heaven = 0; r.earth = 0; });
+        state.hintRodIndex = -1;
+        if (withSound) audio.play('sweep');
+        renderSoroban();
+        const bar = document.getElementById('harimono-bar');
+        if (bar) bar.classList.add('harimono-sweeping');
+        updateAbacusValue(false);
+      }
+
+      function attachSorobanGestures() {
+        const container = document.getElementById('soroban-container');
+        const bar = document.getElementById('harimono-bar');
+
+        // 1. Gesto de Varredura Horizontal na Barra Central (Gosan / Reset)
+        if (bar) {
+          let barStartX = null;
+          bar.addEventListener('pointerdown', e => {
+            barStartX = e.clientX;
+            bar.setPointerCapture(e.pointerId);
+          });
+          bar.addEventListener('pointermove', e => {
+            if (barStartX === null) return;
+            if (Math.abs(e.clientX - barStartX) > 28) {
+              barStartX = null;
+              resetAllRods(true);
+              showToast('🧹 Varredura Gosan: ábaco zerado!');
+            }
+          });
+          ['pointerup', 'pointercancel'].forEach(ev => {
+            bar.addEventListener(ev, () => { barStartX = null; });
+          });
+        }
+
+        // 2. Toque e Deslize Vertical nas Contas do Céu e da Terra
+        let lastTapTime = 0;
+        let lastTapRod = -1;
+
+        container.querySelectorAll('.soroban-bead').forEach(beadEl => {
+          let startY = 0;
+          let moved = false;
+
+          beadEl.addEventListener('pointerdown', e => {
+            e.stopPropagation();
+            startY = e.clientY;
+            moved = false;
+            beadEl.setPointerCapture(e.pointerId);
+          });
+
+          beadEl.addEventListener('pointermove', e => {
+            if (!beadEl.hasPointerCapture(e.pointerId)) return;
+            const dy = e.clientY - startY;
+            if (Math.abs(dy) < 10) return;
+            moved = true;
+
+            const rodIdx = parseInt(beadEl.dataset.rod, 10);
+            const part = beadEl.dataset.part;
+
+            if (part === 'heaven') {
+              // Arrastar p/ baixo ativa (1); arrastar p/ cima desativa (0)
+              setRodHeaven(rodIdx, dy > 0 ? 1 : 0);
+            } else {
+              const bIdx = parseInt(beadEl.dataset.bead, 10);
+              // Arrastar p/ cima sobe até bIdx+1; arrastar p/ baixo desce até bIdx
+              setRodEarth(rodIdx, dy < 0 ? (bIdx + 1) : bIdx);
+            }
+          });
+
+          beadEl.addEventListener('pointerup', e => {
+            if (beadEl.hasPointerCapture(e.pointerId)) {
+              beadEl.releasePointerCapture(e.pointerId);
+            }
+            if (moved) return;
+
+            const rodIdx = parseInt(beadEl.dataset.rod, 10);
+            const part = beadEl.dataset.part;
+            const now = Date.now();
+
+            // Duplo toque rápido na mesma haste zera a haste inteira
+            if (rodIdx === lastTapRod && now - lastTapTime < 260) {
+              state.rods[rodIdx].heaven = 0;
+              state.rods[rodIdx].earth = 0;
+              audio.play('bead');
+              renderSoroban();
+              updateAbacusValue(true);
+              lastTapTime = 0;
+              return;
+            }
+            lastTapTime = now;
+            lastTapRod = rodIdx;
+
+            if (part === 'heaven') {
+              setRodHeaven(rodIdx, state.rods[rodIdx].heaven === 1 ? 0 : 1);
+            } else {
+              const bIdx = parseInt(beadEl.dataset.bead, 10);
+              const curEarth = state.rods[rodIdx].earth;
+              setRodEarth(rodIdx, bIdx < curEarth ? bIdx : (bIdx + 1));
+            }
+          });
+        });
+      }
+
+      /* ------------------------------------------------------------------
+         I. VERIFICAÇÃO DE ACERTO, BÔNUS DE VELOCIDADE E PODERES
+         ------------------------------------------------------------------ */
+      function getTargetDigitsArray() {
+        const str = String(state.challenge.targetValue).padStart(state.rodCount, '0');
+        return str.split('').map(ch => parseInt(ch, 10));
+      }
+
+      function handleRoundSuccess() {
+        if (state.roundSolved) return;
+        state.roundSolved = true;
+        if (state.timerId) clearInterval(state.timerId);
+        if (state.flashTimerId) clearTimeout(state.flashTimerId);
+
+        audio.play('win');
+        state.economy.solvedCount += 1;
+        state.economy.streak += 1;
+
+        const speedBonus = (state.timeFrozen || state.elapsedTenths <= 85) ? 10 : 0;
+        const streakBonus = Math.min(state.economy.streak * 3, 20);
+        const mult = state.economy.unlocked.includes('double_coins') ? 2 : 1;
+        const earned = state.challenge.rewardCoins + (speedBonus + streakBonus) * mult;
+
+        state.economy.coins += earned;
+        saveEconomy();
+
+        // Sticker animado proporcional ao desempenho
+        const sticker = speedBonus > 0
+          ? STICKERS[1] // ⚡ Relâmpago!
+          : state.economy.streak >= 3
+            ? STICKERS[2] // 🔥 Combo!
+            : STICKERS[0]; // 🧮 Exato!
+        launchReactionSticker(sticker);
+
+        showToast(`🎉 Correto! +${earned} 🪙 (Sequência: ${state.economy.streak}🔥)`);
+
+        setTimeout(() => {
+          if (state.isDaily) state.dailyIndex++;
+          generateChallenge();
+        }, 1250);
+      }
+
+      function manualCheckAnswer() {
+        if (!state.challenge || state.roundSolved) return;
+        const val = getAbacusValue();
+        if (val === state.challenge.targetValue) {
+          handleRoundSuccess();
+        } else {
+          audio.play('err');
+          state.economy.streak = 0;
+          saveEconomy();
+          showToast(`❌ Valor atual: ${formatInt(val)}. Ajuste as contas e tente novamente!`);
+        }
+      }
+
+      function consumeOrBuyPower(itemId, price) {
+        if ((state.economy.inventory[itemId] || 0) > 0) {
+          state.economy.inventory[itemId]--;
+          saveEconomy();
+          return true;
+        }
+        if (state.economy.coins >= price) {
+          state.economy.coins -= price;
+          saveEconomy();
+          audio.play('coin');
+          return true;
+        }
+        showToast(`⚠️ Moedas insuficientes! Você precisa de ${price} 🪙.`);
+        return false;
+      }
+
+      function useStepHintPower() {
+        if (!state.challenge || state.roundSolved) return;
+        const targetDigits = getTargetDigitsArray();
+
+        let wrongRod = -1;
+        for (let i = state.rodCount - 1; i >= 0; i--) {
+          const curDigit = state.rods[i].heaven * 5 + state.rods[i].earth;
+          if (curDigit !== targetDigits[i]) {
+            wrongRod = i;
+            break;
+          }
+        }
+        if (wrongRod === -1) return;
+        if (!consumeOrBuyPower('hint', 15)) return;
+
+        state.hintRodIndex = wrongRod;
+        const want = targetDigits[wrongRod];
+        const hNeed = want >= 5 ? 1 : 0;
+        const eNeed = want % 5;
+
+        audio.play('bead');
+        renderSoroban();
+        showToast(`💡 Ajuste a haste destacada para ${want} (Céu: ${hNeed === 1 ? 'baixo' : 'cima'}, Terra: ${eNeed} acima).`);
+      }
+
+      function useAutoRodPower() {
+        if (!state.challenge || state.roundSolved) return;
+        const targetDigits = getTargetDigitsArray();
+
+        let wrongRod = -1;
+        for (let i = state.rodCount - 1; i >= 0; i--) {
+          const curDigit = state.rods[i].heaven * 5 + state.rods[i].earth;
+          if (curDigit !== targetDigits[i]) {
+            wrongRod = i;
+            break;
+          }
+        }
+        if (wrongRod === -1) return;
+        if (!consumeOrBuyPower('autorod', 20)) return;
+
+        const want = targetDigits[wrongRod];
+        state.rods[wrongRod].heaven = want >= 5 ? 1 : 0;
+        state.rods[wrongRod].earth = want % 5;
+        state.hintRodIndex = -1;
+
+        audio.play('sweep');
+        renderSoroban();
+        updateAbacusValue(true);
+        showToast(`⚡ Haste ajustada automaticamente para ${want}!`);
+      }
+
+      function useFreezeTimePower() {
+        if (state.roundSolved || state.timeFrozen) {
+          showToast('❄️ O tempo desta rodada já está congelado!');
+          return;
+        }
+        if (!consumeOrBuyPower('freeze', 15)) return;
+
+        state.timeFrozen = true;
+        document.getElementById('timer-display').textContent = '❄️ FREEZE';
+        audio.play('coin');
+        showToast('❄️ Tempo congelado! Bônus de velocidade garantido.');
+      }
+
+      /* ------------------------------------------------------------------
+         J. TUTORIAL PASSO A PASSO INTERATIVO (4 ETAPAS)
+         ------------------------------------------------------------------ */
+      function openTutorialModal(stepIdx = 0) {
+        state.tutorialStep = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, stepIdx));
+        renderTutorialStep();
+        document.getElementById('tutorial-modal').classList.remove('hidden');
+      }
+
+      function renderTutorialStep() {
+        const idx = state.tutorialStep;
+        const step = TUTORIAL_STEPS[idx];
+        document.getElementById('tut-step-badge').textContent = `Passo ${idx + 1} de ${TUTORIAL_STEPS.length}`;
+        document.getElementById('tut-title').textContent = step.title;
+        document.getElementById('tut-diagram').innerHTML = step.diagram;
+        document.getElementById('tut-desc').textContent = step.desc;
+
+        const dots = document.getElementById('tut-dots');
+        dots.innerHTML = '';
+        TUTORIAL_STEPS.forEach((_, i) => {
+          const d = document.createElement('button');
+          d.type = 'button';
+          d.className = `h-2.5 rounded-full transition-all ${i === idx ? 'w-7' : 'w-2.5 opacity-40'}`;
+          d.style.background = i === idx ? 'var(--accent-primary)' : 'var(--text-main)';
+          d.addEventListener('click', () => openTutorialModal(i));
+          dots.appendChild(d);
+        });
+
+        const prevBtn = document.getElementById('btn-tut-prev');
+        prevBtn.style.visibility = idx === 0 ? 'hidden' : 'visible';
+
+        const nextBtn = document.getElementById('btn-tut-next');
+        nextBtn.textContent = idx === TUTORIAL_STEPS.length - 1 ? 'Começar a Jogar!' : 'Próximo →';
+      }
+
+      /* ------------------------------------------------------------------
+         K. STICKERS ANIMADOS (REAÇÕES & ARRASTE SOBRE O SOROBAN)
+         ------------------------------------------------------------------ */
+      function launchReactionSticker(st) {
+        const fx = document.createElement('div');
+        fx.className = 'sticker-reaction-fx px-4 py-2 rounded-2xl font-bold text-base border-2 shadow-2xl';
+        fx.style.background = st.bg;
+        fx.style.color = st.color;
+        fx.style.borderColor = st.border;
+        fx.innerHTML = `${st.emoji} ${st.label}`;
+        document.body.appendChild(fx);
+        setTimeout(() => fx.remove(), 1300);
+      }
+
+      function setupStickers() {
+        const palette = document.getElementById('sticker-palette');
+        const layer = document.getElementById('placed-stickers-layer');
+        const workspace = document.getElementById('game-workspace');
+
+        STICKERS.forEach(st => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold border-2 shadow flex items-center gap-1 select-none touch-none active:scale-90 transition';
+          btn.style.background = st.bg;
+          btn.style.color = st.color;
+          btn.style.borderColor = st.border;
+          btn.innerHTML = `<span>${st.emoji}</span><span>${st.label}</span>`;
+
+          let sx = 0, sy = 0, dragging = false, ghost = null;
+
+          btn.addEventListener('pointerdown', e => {
+            sx = e.clientX; sy = e.clientY; dragging = false;
+            btn.setPointerCapture(e.pointerId);
+          });
+
+          btn.addEventListener('pointermove', e => {
+            if (!btn.hasPointerCapture(e.pointerId)) return;
+            if (Math.hypot(e.clientX - sx, e.clientY - sy) > 10 && !dragging) {
+              dragging = true;
+              ghost = document.createElement('div');
+              ghost.className = 'fixed z-50 pointer-events-none px-2.5 py-1 rounded-xl text-xs font-bold border-2 shadow-xl';
+              ghost.style.background = st.bg;
+              ghost.style.color = st.color;
+              ghost.style.borderColor = st.border;
+              ghost.innerHTML = `${st.emoji} ${st.label}`;
+              document.body.appendChild(ghost);
+            }
+            if (dragging && ghost) {
+              ghost.style.left = `${e.clientX - 34}px`;
+              ghost.style.top = `${e.clientY - 16}px`;
+            }
+          });
+
+          btn.addEventListener('pointerup', e => {
+            if (btn.hasPointerCapture(e.pointerId)) btn.releasePointerCapture(e.pointerId);
+            if (dragging && ghost) {
+              ghost.remove(); ghost = null;
+              const rect = workspace.getBoundingClientRect();
+              const rx = e.clientX - rect.left - 32;
+              const ry = e.clientY - rect.top - 16;
+              if (rx >= 0 && ry >= 0 && rx <= rect.width - 36 && ry <= rect.height - 20) {
+                const badge = document.createElement('div');
+                badge.className = 'placed-sticker pointer-events-auto px-2.5 py-1 rounded-xl text-xs font-bold border-2';
+                badge.style.left = `${rx}px`;
+                badge.style.top = `${ry}px`;
+                badge.style.background = st.bg;
+                badge.style.color = st.color;
+                badge.style.borderColor = st.border;
+                badge.title = 'Toque para remover';
+                badge.innerHTML = `${st.emoji} ${st.label}`;
+                badge.addEventListener('click', () => { audio.play('bead'); badge.remove(); });
+                layer.appendChild(badge);
+                audio.play('bead');
+              }
+            } else {
+              launchReactionSticker(st);
+              audio.play('bead');
+            }
+            dragging = false;
+          });
+
+          palette.appendChild(btn);
+        });
+      }
+
+      /* ------------------------------------------------------------------
+         L. PERFIL LOCAL, CÂMERA (128x128 JPEG 0.75), AJUSTES E LOJA
+         ------------------------------------------------------------------ */
+      let draftAvatar = EMBLEMS[0].svg;
+      let cameraStream = null;
+      let facingMode = 'user';
+      let isInitialOnboarding = false;
+
+      function saveEconomy() {
+        SafeStorage.set(KEY_ECONOMY, JSON.stringify(state.economy));
+        updateEconomyUI();
+      }
+
+      function renderAvatar(el, data) {
+        if (!el) return;
+        if (data && data.startsWith('data:image')) {
+          el.innerHTML = `<img src="${data}" alt="Avatar" class="w-full h-full object-cover" />`;
+        } else if (data && data.startsWith('<svg')) {
+          el.innerHTML = data;
+        } else {
+          el.innerHTML = `<span class="text-xl">🧮</span>`;
+        }
+      }
+
+      function renderHeaderProfile() {
+        const p = state.profile || { name: 'Mestre', avatar: EMBLEMS[0].svg };
+        document.getElementById('header-player-name').textContent = p.name;
+        const box = document.getElementById('header-avatar');
+        renderAvatar(box, p.avatar);
+        if (state.economy.unlocked.includes('gold_frame')) box.classList.add('gold-avatar-ring');
+        else box.classList.remove('gold-avatar-ring');
+      }
+
+      function updateEconomyUI() {
+        document.getElementById('header-coins').textContent = state.economy.coins;
+        document.getElementById('header-streak').textContent = state.economy.streak;
+        document.getElementById('store-balance').textContent = state.economy.coins;
+
+        const inv = state.economy.inventory;
+        document.getElementById('qty-hint').textContent = inv.hint > 0 ? `${inv.hint}×` : '15🪙';
+        document.getElementById('qty-autorod').textContent = inv.autorod > 0 ? `${inv.autorod}×` : '20🪙';
+        document.getElementById('qty-freeze').textContent = inv.freeze > 0 ? `${inv.freeze}×` : '15🪙';
+
+        const activeT = THEMES[state.economy.activeTheme] || THEMES.hinoki;
+        document.getElementById('active-theme-pill').textContent = activeT.short;
+        document.getElementById('settings-theme-name').textContent = activeT.name;
+      }
+
+      function applyTheme(key) {
+        const t = THEMES[key] || THEMES.hinoki;
+        state.economy.activeTheme = key;
+        Object.entries(t.vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+      }
+
+      function cycleUnlockedTheme() {
+        const keys = ['hinoki', 'urushi', 'cyber', 'bamboo'].filter(
+          k => k === 'hinoki' || state.economy.unlocked.includes(`theme_${k}`)
+        );
+        if (keys.length <= 1) {
+          openStoreModal();
+          showToast('🎨 Desbloqueie novos temas na Loja usando suas moedas!');
+          return;
+        }
+        const curIdx = keys.indexOf(state.economy.activeTheme);
+        const nextKey = keys[(curIdx + 1) % keys.length];
+        applyTheme(nextKey);
+        saveEconomy();
+        audio.play('bead');
+        showToast(`Tema alterado: ${THEMES[nextKey].name}`);
+      }
+
+      function openProfileModal(firstRun = false) {
+        isInitialOnboarding = firstRun;
+        const grid = document.getElementById('emblems-grid');
+        grid.innerHTML = '';
+        const hasVip = state.economy.unlocked.includes('vip_emblems');
+
+        EMBLEMS.forEach(emb => {
+          const locked = emb.vip && !hasVip;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `relative h-12 rounded-xl soro-card flex items-center justify-center active:scale-90 transition ${locked ? 'opacity-50' : ''}`;
+          btn.innerHTML = emb.svg + (locked ? `<span class="absolute -top-1 -right-1 text-[10px]">🔒</span>` : '');
+          btn.addEventListener('click', () => {
+            if (locked) {
+              showToast('🔒 Selo VIP! Desbloqueie o Pacote Emblemas VIP na Loja.');
+              return;
+            }
+            draftAvatar = emb.svg;
+            renderAvatar(document.getElementById('profile-avatar-preview'), draftAvatar);
+          });
+          grid.appendChild(btn);
+        });
+
+        document.getElementById('stat-solved').textContent = state.economy.solvedCount;
+        document.getElementById('stat-streak').textContent = `${state.economy.streak}🔥`;
+        document.getElementById('stat-coins').textContent = `${state.economy.coins} 🪙`;
+
+        const closeBtn = document.getElementById('btn-close-profile');
+        if (firstRun) {
+          closeBtn.classList.add('hidden');
+          draftAvatar = EMBLEMS[0].svg;
+          document.getElementById('input-player-name').value = '';
+        } else {
+          closeBtn.classList.remove('hidden');
+          draftAvatar = (state.profile && state.profile.avatar) || EMBLEMS[0].svg;
+          document.getElementById('input-player-name').value = (state.profile && state.profile.name) || '';
+        }
+
+        renderAvatar(document.getElementById('profile-avatar-preview'), draftAvatar);
+        document.getElementById('profile-modal').classList.remove('hidden');
+      }
+
+      async function startCamera() {
+        stopCamera();
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+          const vid = document.getElementById('camera-video');
+          vid.srcObject = cameraStream;
+          document.getElementById('camera-box').classList.remove('hidden');
+        } catch (_) {
+          showToast('Câmera indisponível neste dispositivo ou navegador.');
+        }
+      }
+
+      function stopCamera() {
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(t => t.stop());
+          cameraStream = null;
+        }
+        document.getElementById('camera-box').classList.add('hidden');
+      }
+
+      function compressSquareAvatar(src, isVideo = false) {
+        return new Promise(resolve => {
+          const canvas = document.createElement('canvas');
+          const s = 128;
+          canvas.width = s; canvas.height = s;
+          const ctx = canvas.getContext('2d');
+          if (isVideo) {
+            const vw = src.videoWidth || 320, vh = src.videoHeight || 320;
+            const side = Math.min(vw, vh);
+            ctx.drawImage(src, (vw - side) / 2, (vh - side) / 2, side, side, 0, 0, s, s);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          } else {
+            const reader = new FileReader();
+            reader.onload = ev => {
+              const img = new Image();
+              img.onload = () => {
+                const side = Math.min(img.width, img.height);
+                ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, s, s);
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
+              };
+              img.src = ev.target.result;
+            };
+            reader.readAsDataURL(src);
+          }
+        });
+      }
+
+      function openSettingsModal() {
+        updateSettingsButtonsUI();
+        document.getElementById('settings-modal').classList.remove('hidden');
+      }
+
+      function updateSettingsButtonsUI() {
+        const audBtn = document.getElementById('btn-settings-audio');
+        audBtn.textContent = audio.muted ? 'MUDO' : 'ATIVADO';
+        audBtn.style.background = audio.muted ? '#64748B' : 'var(--accent-primary)';
+
+        const autoBtn = document.getElementById('btn-settings-autocheck');
+        autoBtn.textContent = state.autoCheck ? 'ATIVADO' : 'MANUAL';
+        autoBtn.style.background = state.autoCheck ? 'var(--accent-primary)' : '#64748B';
+      }
+
+      function openStoreModal() {
+        const consBox = document.getElementById('store-consumables');
+        consBox.innerHTML = '';
+        STORE_CONSUMABLES.forEach(item => {
+          const qty = state.economy.inventory[item.id] || 0;
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl soro-card flex items-center justify-between gap-3';
+          card.innerHTML = `
+            <div class="min-w-0">
+              <div class="font-bold text-sm flex items-center gap-1.5">
+                <span>${item.title}</span>
+                <span class="px-1.5 py-0.5 rounded font-mono-num text-[10px] bg-black/15">Posse: ${qty}</span>
+              </div>
+              <div class="text-xs opacity-80">${item.desc}</div>
+            </div>
+            <button type="button" class="shrink-0 px-3 py-2 rounded-xl font-mono-num text-xs font-bold text-white active:scale-95 transition"
+              style="background: var(--accent-primary);">
+              +1 (${item.price} 🪙)
+            </button>
+          `;
+          card.querySelector('button').addEventListener('click', () => {
+            if (state.economy.coins < item.price) {
+              showToast(`⚠️ Você precisa de ${item.price} 🪙 para comprar este poder.`);
+              return;
+            }
+            state.economy.coins -= item.price;
+            state.economy.inventory[item.id] = (state.economy.inventory[item.id] || 0) + 1;
+            audio.play('coin');
+            saveEconomy();
+            openStoreModal();
+            showToast(`🎒 +1 ${item.title} adicionado!`);
+          });
+          consBox.appendChild(card);
+        });
+
+        const permBox = document.getElementById('store-permanents');
+        permBox.innerHTML = '';
+        STORE_PERMANENTS.forEach(item => {
+          const owned = state.economy.unlocked.includes(item.id);
+          const active = item.type === 'theme' && state.economy.activeTheme === item.themeKey;
+          const card = document.createElement('div');
+          card.className = 'p-3 rounded-xl soro-card flex items-center justify-between gap-3';
+          card.innerHTML = `
+            <div class="min-w-0">
+              <div class="font-bold text-sm">${item.title}</div>
+              <div class="text-xs opacity-80">${item.desc}</div>
+            </div>
+            <button type="button" class="shrink-0 px-3 py-2 rounded-xl font-mono-num text-xs font-bold active:scale-95 transition"
+              style="background: ${owned ? (active ? '#16a34a' : 'var(--surface-panel)') : 'var(--accent-primary)'}; color: ${owned && !active ? 'var(--text-main)' : '#fff'};">
+              ${owned ? (item.type === 'theme' ? (active ? '✓ Ativo' : 'Aplicar') : '✓ Adquirido') : `${item.price} 🪙`}
+            </button>
+          `;
+          card.querySelector('button').addEventListener('click', () => {
+            if (owned) {
+              if (item.type === 'theme') {
+                applyTheme(item.themeKey);
+                saveEconomy();
+                openStoreModal();
+              }
+              return;
+            }
+            if (state.economy.coins < item.price) {
+              showToast(`⚠️ Acerte mais contas para juntar ${item.price} 🪙!`);
+              return;
+            }
+            state.economy.coins -= item.price;
+            state.economy.unlocked.push(item.id);
+            if (item.type === 'theme') applyTheme(item.themeKey);
+            audio.play('coin');
+            saveEconomy();
+            renderHeaderProfile();
+            openStoreModal();
+            showToast(`🎉 "${item.title}" desbloqueado!`);
+          });
+          permBox.appendChild(card);
+        });
+
+        document.getElementById('store-modal').classList.remove('hidden');
+      }
+
+      let toastTimer = null;
+      function showToast(msg) {
+        const box = document.getElementById('toast-box');
+        box.textContent = msg;
+        box.classList.remove('hidden');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => box.classList.add('hidden'), 3300);
+      }
+
+      /* ------------------------------------------------------------------
+         M. EVENTOS E INICIALIZAÇÃO DO APLICATIVO
+         ------------------------------------------------------------------ */
+      function bindEvents() {
+        // Perfil & Câmera
+        document.getElementById('btn-open-profile').addEventListener('click', () => openProfileModal(false));
+        document.getElementById('btn-close-profile').addEventListener('click', () => {
+          stopCamera();
+          document.getElementById('profile-modal').classList.add('hidden');
+        });
+        document.getElementById('input-photo-upload').addEventListener('change', async e => {
+          const f = e.target.files && e.target.files[0];
+          if (!f) return;
+          draftAvatar = await compressSquareAvatar(f, false);
+          renderAvatar(document.getElementById('profile-avatar-preview'), draftAvatar);
+        });
+        document.getElementById('btn-start-camera').addEventListener('click', startCamera);
+        document.getElementById('btn-switch-camera').addEventListener('click', () => {
+          facingMode = facingMode === 'user' ? 'environment' : 'user';
+          startCamera();
+        });
+        document.getElementById('btn-snap-photo').addEventListener('click', async () => {
+          draftAvatar = await compressSquareAvatar(document.getElementById('camera-video'), true);
+          renderAvatar(document.getElementById('profile-avatar-preview'), draftAvatar);
+          stopCamera();
+        });
+        document.getElementById('btn-cancel-camera').addEventListener('click', stopCamera);
+        document.getElementById('btn-save-profile').addEventListener('click', () => {
+          const name = document.getElementById('input-player-name').value.trim();
+          state.profile = { name: name || 'Mestre Zen', avatar: draftAvatar };
+          SafeStorage.set(KEY_PROFILE, JSON.stringify(state.profile));
+          stopCamera();
+          renderHeaderProfile();
+          document.getElementById('profile-modal').classList.add('hidden');
+          audio.play('win');
+
+          if (isInitialOnboarding) {
+            isInitialOnboarding = false;
+            openTutorialModal(0);
+          }
+        });
+
+        // Tutorial Passo a Passo
+        document.getElementById('btn-close-tutorial').addEventListener('click', () => {
+          document.getElementById('tutorial-modal').classList.add('hidden');
+        });
+        document.getElementById('btn-tut-prev').addEventListener('click', () => {
+          openTutorialModal(state.tutorialStep - 1);
+          audio.play('bead');
+        });
+        document.getElementById('btn-tut-next').addEventListener('click', () => {
+          if (state.tutorialStep < TUTORIAL_STEPS.length - 1) {
+            openTutorialModal(state.tutorialStep + 1);
+            audio.play('bead');
+          } else {
+            document.getElementById('tutorial-modal').classList.add('hidden');
+            audio.play('win');
+          }
+        });
+
+        // Loja, Tema & Ajustes
+        document.getElementById('btn-open-store').addEventListener('click', openStoreModal);
+        document.getElementById('btn-close-store').addEventListener('click', () => {
+          document.getElementById('store-modal').classList.add('hidden');
+        });
+        document.getElementById('btn-cycle-theme').addEventListener('click', cycleUnlockedTheme);
+
+        document.getElementById('btn-open-settings').addEventListener('click', openSettingsModal);
+        document.getElementById('btn-close-settings').addEventListener('click', () => {
+          document.getElementById('settings-modal').classList.add('hidden');
+        });
+        document.getElementById('btn-settings-tutorial').addEventListener('click', () => {
+          document.getElementById('settings-modal').classList.add('hidden');
+          openTutorialModal(0);
+        });
+        document.getElementById('btn-settings-audio').addEventListener('click', () => {
+          audio.muted = !audio.muted;
+          updateSettingsButtonsUI();
+          if (!audio.muted) audio.play('bead');
+        });
+        document.getElementById('btn-settings-autocheck').addEventListener('click', () => {
+          state.autoCheck = !state.autoCheck;
+          updateSettingsButtonsUI();
+          audio.play('bead');
+        });
+        document.getElementById('btn-settings-theme').addEventListener('click', cycleUnlockedTheme);
+        document.getElementById('btn-settings-profile').addEventListener('click', () => {
+          document.getElementById('settings-modal').classList.add('hidden');
+          openProfileModal(false);
+        });
+
+        // Níveis, Diário, Espiar Flash & Visor
+        document.getElementById('difficulty-select').addEventListener('change', e => {
+          state.difficulty = e.target.value;
+          state.isDaily = false;
+          generateChallenge();
+        });
+        document.getElementById('btn-daily-challenge').addEventListener('click', () => {
+          state.isDaily = true;
+          generateChallenge();
+        });
+        document.getElementById('btn-skip-round').addEventListener('click', () => {
+          generateChallenge();
+        });
+        document.getElementById('btn-flash-peek').addEventListener('click', () => {
+          if (!state.challenge || !state.challenge.isFlash) return;
+          state.flashHidden = false;
+          renderChallengeHeader();
+          if (state.flashTimerId) clearTimeout(state.flashTimerId);
+          state.flashTimerId = setTimeout(() => {
+            state.flashHidden = true;
+            renderChallengeHeader();
+          }, 1600);
+        });
+        document.getElementById('btn-toggle-readout').addEventListener('click', () => {
+          state.showReadout = !state.showReadout;
+          updateAbacusValue(false);
+          audio.play('bead');
+        });
+
+        // Zerar, Confirmar & Poderes
+        document.getElementById('btn-gosan-reset').addEventListener('click', () => resetAllRods(true));
+        document.getElementById('btn-check-answer').addEventListener('click', manualCheckAnswer);
+        document.getElementById('btn-power-hint').addEventListener('click', useStepHintPower);
+        document.getElementById('btn-power-autorod').addEventListener('click', useAutoRodPower);
+        document.getElementById('btn-power-freeze').addEventListener('click', useFreezeTimePower);
+
+        // Stickers
+        document.getElementById('btn-toggle-stickers').addEventListener('click', () => {
+          document.getElementById('sticker-drawer').classList.toggle('hidden');
+          audio.play('bead');
+        });
+        document.getElementById('btn-clear-stickers').addEventListener('click', () => {
+          document.getElementById('placed-stickers-layer').innerHTML = '';
+          audio.play('bead');
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        setupPWA();
+
+        const p = SafeStorage.get(KEY_PROFILE);
+        if (p) { try { state.profile = JSON.parse(p); } catch (_) {} }
+        const ec = SafeStorage.get(KEY_ECONOMY);
+        if (ec) {
+          try {
+            const parsed = JSON.parse(ec);
+            state.economy = {
+              ...state.economy,
+              ...parsed,
+              inventory: { ...state.economy.inventory, ...(parsed.inventory || {}) }
+            };
+          } catch (_) {}
+        }
+
+        applyTheme(state.economy.activeTheme || 'hinoki');
+        updateEconomyUI();
+        renderHeaderProfile();
+
+        setupStickers();
+        bindEvents();
+        generateChallenge();
+
+        if (!state.profile) {
+          openProfileModal(true);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
